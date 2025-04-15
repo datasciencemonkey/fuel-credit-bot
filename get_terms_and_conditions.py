@@ -97,8 +97,8 @@ def extract_text_from_all_pages(pdf_path: str, output_file: str):
 
 # %%
 # Execute the extraction
-pdf_path = '2025-axle-fuel-card-terms-and-conditions.pdf'
-output_file = 'extracted_terms_and_conditions.txt'
+pdf_path = './data/2025-axle-fuel-card-terms-and-conditions.pdf'
+output_file = './data/extracted_terms_and_conditions.txt'
 
 extract_text_from_all_pages(pdf_path, output_file)
 
