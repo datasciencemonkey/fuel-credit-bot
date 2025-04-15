@@ -1,6 +1,7 @@
 # %%
 import functools
 import os
+import toml
 from typing import Any, Generator, Literal, Optional
 from dotenv import load_dotenv
 import mlflow
@@ -66,24 +67,27 @@ llm = ChatDatabricks(
     token=os.getenv("DATABRICKS_TOKEN"),
 )
 # %%
-print(llm.invoke("Hello, world!"))
+# print(llm.invoke("Hello, world!"))
 # %%
 client = DatabricksFunctionClient()
 
 ############################################################
-# Create a code agent
+# Create a toc agent
 # You can also create agents with access to additional tools
 ############################################################
 tools = []
 
-# TODO if desired, add additional tools and update the description of this agent
-uc_tool_names = ["system.ai.*"]
+
+uc_tool_names = ["main.sgfs.fuel_card_toc"]
+with open("prompts.toml", "r") as f:
+    tnc_agent_prompts = toml.load(f)
+
+
 uc_toolkit = UCFunctionToolkit(function_names=uc_tool_names, client=client)
 tools.extend(uc_toolkit.tools)
-code_agent_description = (
-    "The Coder agent specializes in solving programming challenges, generating code snippets, debugging issues, and explaining complex coding concepts.",
-)
-code_agent = create_react_agent(llm, tools=tools)
+# Giving a role to the agent
+tnc_agent_description = tnc_agent_prompts["tnc_agent_system_prompt"]["prompt"]
+tnc_agent = create_react_agent(llm, tools=tools)
 # %%
 #############################
 # Define the supervisor agent
@@ -95,7 +99,7 @@ MAX_ITERATIONS = 3
 
 worker_descriptions = {
     "Genie": genie_agent_description,
-    "Coder": code_agent_description,
+    "TNC": tnc_agent_description,
 }
 
 formatted_descriptions = "\n".join(
@@ -160,12 +164,12 @@ class AgentState(ChatAgentState):
 
 
 # %%
-code_node = functools.partial(agent_node, agent=code_agent, name="Coder")
+tnc_node = functools.partial(agent_node, agent=tnc_agent, name="TNC")
 genie_node = functools.partial(agent_node, agent=genie_agent, name="Genie")
 
 workflow = StateGraph(AgentState)
 workflow.add_node("Genie", genie_node)
-workflow.add_node("Coder", code_node)
+workflow.add_node("TNC", tnc_node)
 workflow.add_node("supervisor", supervisor_agent)
 workflow.add_node("final_answer", final_answer)
 
